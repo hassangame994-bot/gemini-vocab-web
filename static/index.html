@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fc">
+  <title>VocabDeck — إنشاء بطاقات Anki</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true">V</div>
+        <div>
+          <div class="brand-name">VocabDeck</div>
+          <div class="brand-subtitle">من كلماتك إلى بطاقات Anki جاهزة</div>
+        </div>
+      </div>
+      <div class="topbar-note"><span class="status-dot"></span> يعمل من المتصفح</div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow">ENGLISH VOCABULARY BUILDER</div>
+        <h1>حوّل الكلمات إلى بطاقات<br><span>بالصورة والصوت</span></h1>
+        <p>ارفع صورة من كتابك أو اكتب الكلمات بنفسك، راجع المعاني والأمثلة، ثم نزّل ملفًا واحدًا تستورده على الهاتف.</p>
+        <div class="hero-pills">
+          <span>صور</span><span>نطق إنجليزي</span><span>معنى ومستوى</span><span>.apkg</span>
+        </div>
+      </section>
+
+      <section class="panel setup-panel">
+        <div class="section-heading">
+          <div class="step-number">1</div>
+          <div>
+            <h2>أدخل الكلمات</h2>
+            <p>اختر الصور أو اكتب قائمة الكلمات يدويًا.</p>
+          </div>
+        </div>
+
+        <div class="key-row">
+          <label for="apiKey">Gemini API key</label>
+          <div class="key-input-wrap">
+            <input id="apiKey" type="password" placeholder="الصق مفتاح Gemini هنا" autocomplete="off" spellcheck="false" dir="ltr">
+            <button id="toggleKey" class="icon-button" type="button" aria-label="إظهار أو إخفاء المفتاح">إظهار</button>
+          </div>
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">الحصول على مفتاح</a>
+        </div>
+        <div class="privacy-note"><span class="privacy-icon">i</span> المفتاح لا يُحفظ في قاعدة بيانات؛ استخدمه أثناء إنشاء البطاقات فقط.</div>
+
+        <div class="source-tabs" role="tablist" aria-label="مصدر الكلمات">
+          <button class="source-tab active" id="tabImages" type="button" role="tab" aria-selected="true">رفع صورة للكلمات</button>
+          <button class="source-tab" id="tabManual" type="button" role="tab" aria-selected="false">كتابة الكلمات</button>
+        </div>
+
+        <div id="imageSource" class="source-content">
+          <label class="dropzone" for="imageFiles" id="dropzone">
+            <span class="upload-icon" aria-hidden="true">↑</span>
+            <strong>اضغط لاختيار صور الصفحات</strong>
+            <span>PNG أو JPG أو WEBP — بحد أقصى 8 ميجابايت إجمالًا</span>
+            <span id="selectedFiles" class="selected-files">لم يتم اختيار صور بعد</span>
+          </label>
+          <input id="imageFiles" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" multiple hidden>
+          <div class="option-line">
+            <label class="checkbox-label"><input id="skipCommon" type="checkbox" checked> تجاهل الكلمات الشائعة جدًا مثل the و is و and</label>
+          </div>
+          <button id="extractButton" class="primary-button" type="button">استخراج الكلمات من الصور <span>←</span></button>
+        </div>
+
+        <div id="manualSource" class="source-content hidden">
+          <label for="wordsInput" class="field-label">قائمة الكلمات الإنجليزية</label>
+          <textarea id="wordsInput" rows="5" placeholder="apple&#10;reluctant&#10;give up&#10;bright"></textarea>
+          <div class="muted-hint">اكتب كل كلمة في سطر، أو افصل الكلمات بفاصلة. يمكن أن تتكوّن الكلمة من أكثر من كلمة مثل give up.</div>
+          <button id="addWordsButton" class="primary-button" type="button">إضافة الكلمات للقائمة <span>←</span></button>
+        </div>
+      </section>
+
+      <section id="cardsPanel" class="panel cards-panel hidden">
+        <div class="section-heading section-heading-spread">
+          <div class="heading-left">
+            <div class="step-number">2</div>
+            <div>
+              <h2>راجع محتوى البطاقات</h2>
+              <p>يمكنك تعديل أي كلمة أو معنى أو مثال قبل التصدير.</p>
+            </div>
+          </div>
+          <div id="wordCount" class="count-badge">0 كلمة</div>
+        </div>
+
+        <div class="toolbar">
+          <button id="detailsButton" class="secondary-button" type="button">توليد المستوى والمعنى والأمثلة</button>
+          <button id="clearButton" class="text-button" type="button">مسح القائمة</button>
+        </div>
+        <div id="rowsContainer" class="rows-container"></div>
+        <div class="add-row-line">
+          <input id="extraWord" type="text" placeholder="إضافة كلمة أخرى" dir="auto">
+          <button id="extraWordButton" class="secondary-button" type="button">＋ إضافة</button>
+        </div>
+      </section>
+
+      <section id="mediaPanel" class="panel media-panel hidden">
+        <div class="section-heading">
+          <div class="step-number">3</div>
+          <div>
+            <h2>جهّز الصور والنطق</h2>
+            <p>يبحث عن صورة مناسبة، ويحاول إنشاء تسجيل صوتي لكل كلمة.</p>
+          </div>
+        </div>
+        <div class="media-options">
+          <label for="accent">لهجة النطق</label>
+          <select id="accent"><option value="us">أمريكية</option><option value="uk">بريطانية</option></select>
+        </div>
+        <button id="mediaButton" class="primary-button" type="button">البحث عن الصور وتجهيز الصوت <span>←</span></button>
+        <div id="mediaProgressWrap" class="progress-wrap hidden">
+          <div class="progress-heading"><span id="mediaProgressText">جاري تجهيز الوسائط...</span><span id="mediaProgressNumber">0%</span></div>
+          <div class="progress-track"><div id="mediaProgressBar" class="progress-bar"></div></div>
+        </div>
+        <div class="media-explainer">سيتم إرفاق الوسائط داخل ملف Anki نفسه، حتى لا تحتاج إلى تنزيل الصور أو الصوت بشكل منفصل.</div>
+      </section>
+
+      <section id="exportPanel" class="panel export-panel hidden">
+        <div class="section-heading">
+          <div class="step-number">4</div>
+          <div>
+            <h2>أنشئ ملف Anki</h2>
+            <p>ملف حزمة يحتوي على البطاقات والوسائط التي نجحت في تجهيزها.</p>
+          </div>
+        </div>
+        <label for="deckName" class="field-label">اسم المجموعة داخل Anki</label>
+        <input id="deckName" type="text" value="English Vocabulary — Images & Audio" maxlength="100" dir="auto">
+        <button id="exportButton" class="download-button" type="button"><span class="download-icon">↓</span><span><strong>تنزيل ملف .apkg</strong><small>جاهز للاستيراد على الهاتف</small></span></button>
+        <button id="csvButton" class="secondary-button csv-button" type="button">تنزيل CSV للنصوص فقط</button>
+        <p class="csv-warning">ملف CSV لا يضمّن الصور أو الصوت؛ استخدم APKG للحفاظ على التجربة كاملة.</p>
+      </section>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </main>
+
+    <footer>
+      <span>VocabDeck</span>
+      <span>ملفات البطاقات تُنشأ عند الطلب ولا يتم حفظ قائمتك بعد انتهاء الجلسة.</span>
+    </footer>
+  </div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
